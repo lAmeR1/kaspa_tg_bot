@@ -6,13 +6,10 @@ import requests
 from telebot import TeleBot
 
 import KaspaInterface
-from constants import TOTAL_COIN_SUPPLY
+from constants import TOTAL_COIN_SUPPLY, DEV_MINING_ADDR, DEV_DONATION_ADDR
 
 bot = TeleBot(os.environ["TELEBOT_TOKEN"], threaded=True)
 assert os.environ.get('DONATION_ADDRESS') is not None
-
-DEV_MINING_ADDR = 'kaspa:pzhh76qc82wzduvsrd9xh4zde9qhp0xc8rl7qu2mvl2e42uvdqt75zrcgpm00'
-DEV_DONATION_ADDR = 'kaspa:precqv0krj3r6uyyfa36ga7s0u9jct0v4wg8ctsfde2gkrsgwgw8jgxfzfc98'
 
 
 @bot.message_handler(commands=["donate"])
@@ -29,7 +26,7 @@ def balance(e):
         bot.send_message(e.chat.id, "Command needs kaspa wallet as parameter.")
         return
 
-    if re.match(r"kaspa\:[a-zA-Z0-9]{51}", address) is None:
+    if re.match(r"kaspa:[a-zA-Z0-9]{51}", address) is None:
         bot.send_message(e.chat.id, "kaspa wallet not valid.")
         return
 
