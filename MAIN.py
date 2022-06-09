@@ -70,12 +70,10 @@ def coin_supply(e):
 
 @bot.message_handler(commands=["price"])
 def price(e):
-    resp = requests.get("https://api.coingecko.com/api/v3/simple/price",
-                        params={"ids": "kaspa",
-                                "vs_currencies": "usd"})
-    if resp.status_code == 200:
-        bot.send_message(e.chat.id, f'Current KAS price: *{resp.json()["kaspa"]["usd"] * 1.0e6:.0f} USD* per 1M KAS',
+    if kas_usd := _get_kas_price():
+        bot.send_message(e.chat.id, f'Current KAS price: *{kas_usd * 1.0e6:.0f} USD* per 1M KAS',
                          parse_mode="Markdown")
+
 
 @bot.message_handler(commands=["mining_reward"])
 def mining_reward(e):
@@ -94,6 +92,30 @@ def mining_reward(e):
     bot.send_message(e.chat.id,
                      MINING_CALC(rewards),
                      parse_mode="Markdown")
+
+
+@bot.message_handler(commands=["mcap"])
+def mcap(e):
+    price_usd = _get_kas_price()
+
+    circ_supply = KaspaInterface.get_circulating_supply()
+
+    bot.send_message(e.chat.id,
+                     f"*$KAS MARKET CAP*\n"
+                     f"{'-' * 25}\n"
+                     f"```\n"
+                     f"Current Market Capitalization : {circ_supply * price_usd:>11,.0f} USD\n"
+                     f"Fully Diluted Valuation (FDV) : {TOTAL_COIN_SUPPLY * price_usd:>11,.0f} USD"
+                     f"\n```",
+                     parse_mode="Markdown")
+
+
+def _get_kas_price():
+    resp = requests.get("https://api.coingecko.com/api/v3/simple/price",
+                        params={"ids": "kaspa",
+                                "vs_currencies": "usd"})
+    if resp.status_code == 200:
+        return resp.json()["kaspa"]["usd"]
 
 
 bot.polling(none_stop=True)
