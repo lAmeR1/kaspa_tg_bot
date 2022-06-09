@@ -8,7 +8,7 @@ from telebot import TeleBot
 
 import KaspaInterface
 from constants import TOTAL_COIN_SUPPLY, DEV_MINING_ADDR, DEV_DONATION_ADDR
-from helper import hashrate_to_int, percent_of_network, get_mining_rewards, MINING_CALC
+from helper import hashrate_to_int, percent_of_network, get_mining_rewards, MINING_CALC, normalize_hashrate
 
 bot = TeleBot(os.environ["TELEBOT_TOKEN"], threaded=True)
 assert os.environ.get('DONATION_ADDRESS') is not None
@@ -108,6 +108,13 @@ def mcap(e):
                      f"Fully Diluted Valuation (FDV) : {TOTAL_COIN_SUPPLY * price_usd:>11,.0f} USD"
                      f"\n```",
                      parse_mode="Markdown")
+
+
+@bot.message_handler(commands=["hashrate"])
+def hashrate(e):
+    stats = KaspaInterface.get_stats()
+    norm_hashrate = normalize_hashrate(int(stats['hashrate']))
+    bot.send_message(e.chat.id, f"Current Hashrate: *{norm_hashrate}*", parse_mode="Markdown")
 
 
 def _get_kas_price():

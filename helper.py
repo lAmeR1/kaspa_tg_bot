@@ -75,6 +75,23 @@ def get_mining_rewards(current_daa_score, percent_of_network):
     return rewards
 
 
+def normalize_hashrate(hashrate: int):
+    if hashrate < 1_000:  #
+        return f'{round(hashrate, 2)} H/s'  # Hash
+    elif hashrate < 1_000_000:
+        return f'{round(hashrate / 1_000, 2)} KH/s'  # Kilo
+    elif hashrate < 1_000_000_000:
+        return f'{round(hashrate / 1_000_000, 2)} MH/s'  # Mega
+    elif hashrate < 1_000_000_000_000:
+        return f'{round(hashrate / 1_000_000_000, 2)} GH/s'  # Giga
+    elif hashrate < 1_000_000_000_000_000:
+        return f'{round(hashrate / 1_000_000_000_000, 2)} TH/s'  # Tera
+    elif hashrate < 1_000_000_000_000_000_000:
+        return f'{round(hashrate / 1_000_000_000_000_000, 2)} PH/s'  # Peta
+    elif hashrate < 1_000_000_000_000_000_000_000:
+        return f'{round(hashrate / 1_000_000_000_000_000_000, 2)} EH/s'  # Exa
+
+
 MINING_CALC = lambda rewards: f'''
   KAS / sec   :  {rewards['secound']:,}
   KAS / min   :  {round(rewards['minute']):,}
