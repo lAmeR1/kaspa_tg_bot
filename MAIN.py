@@ -8,6 +8,7 @@ from telebot import TeleBot
 
 import KaspaInterface
 from constants import TOTAL_COIN_SUPPLY, DEV_MINING_ADDR, DEV_DONATION_ADDR
+from helper import hashrate_to_int, percent_of_network, get_mining_rewards, MINING_CALC
 
 bot = TeleBot(os.environ["TELEBOT_TOKEN"], threaded=True)
 assert os.environ.get('DONATION_ADDRESS') is not None
@@ -75,6 +76,24 @@ def price(e):
     if resp.status_code == 200:
         bot.send_message(e.chat.id, f'Current KAS price: *{resp.json()["kaspa"]["usd"] * 1.0e6:.0f} USD* per 1M KAS',
                          parse_mode="Markdown")
+
+@bot.message_handler(commands=["mining_reward"])
+def mining_reward(e):
+    params = " ".join(e.text.split(" ")[1:])
+    match = re.match(r"(?P<dec>\d+) *(?P<suffix>[^\d ]+)", params)
+
+    suffix = match["suffix"]
+    own_hashrate = match["dec"]
+
+    stats = KaspaInterface.get_stats()
+    network_hashrate = int(stats['hashrate'])
+    own_hashrate = own_hashrate + suffix if suffix else own_hashrate
+    own_hashrate = hashrate_to_int(own_hashrate)
+    hash_percent_of_network = percent_of_network(own_hashrate, network_hashrate)
+    rewards = get_mining_rewards(int(stats['daa_score']), hash_percent_of_network)
+    bot.send_message(e.chat.id,
+                     MINING_CALC(rewards),
+                     parse_mode="Markdown")
 
 
 bot.polling(none_stop=True)
