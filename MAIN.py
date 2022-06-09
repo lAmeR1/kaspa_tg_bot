@@ -80,11 +80,11 @@ def mining_reward(e):
     params = " ".join(e.text.split(" ")[1:])
     match = re.match(r"(?P<dec>\d+) *(?P<suffix>[^\d ]+)", params)
 
-    try:
-        suffix = match["suffix"]
-        own_hashrate = match["dec"]
-    except (NameError, KeyError):
+    if match is None:
         return
+
+    suffix = match["suffix"]
+    own_hashrate = match["dec"]
 
     stats = KaspaInterface.get_stats()
     network_hashrate = int(stats['hashrate'])
