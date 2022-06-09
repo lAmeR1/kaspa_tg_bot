@@ -2,6 +2,7 @@
 
 import os
 import re
+from contextlib import suppress
 
 import requests
 from telebot import TeleBot
@@ -97,6 +98,11 @@ def mining_reward(e):
                      parse_mode="Markdown")
 
 
+@bot.message_handler(commands=["id"])
+def id(e):
+    bot.send_message(e.chat.id, f"Chat-Id: {e.chat.id}")
+
+
 @bot.message_handler(commands=["mcap"])
 def mcap(e):
     price_usd = _get_kas_price()
@@ -128,4 +134,21 @@ def _get_kas_price():
         return resp.json()["kaspa"]["usd"]
 
 
-bot.polling(none_stop=True)
+# notifiy in channel on donation
+command = 'notifyUtxosChangedRequest'
+payload = {"addresses": [os.environ["DONATION_ADDRESS"]]}
+
+
+def callback_func(notification: dict):  # create a callback function to process the notifications
+    with suppress(Exception):
+        donation_amount = int(notification["utxosChangedNotification"]["added"][0]["utxoEntry"]["amount"]) / 100000000
+        if chat_id := os.environ.get("DONATION_ANNOUNCEMENT"):
+            bot.send_message(chat_id, f"*NEW DONATION. Thank you for {donation_amount} KAS!*",
+                             parse_mode="Markdown")
+
+
+# send the request to the server and retrive the response
+with KaspaInterface.kaspa_connection() as client:
+    # subscribe utxo change for donation address
+    resp = client.subscribe(command=command, payload=payload, callback=callback_func)
+    bot.polling(none_stop=True)
