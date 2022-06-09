@@ -16,7 +16,7 @@ assert os.environ.get('DONATION_ADDRESS') is not None
 
 @bot.message_handler(commands=["donate"])
 def donate(e):
-    bot.send_message(e.chat.id, f"Please consider a donation: `{os.environ['DONATION_ADDRESS']}`",
+    bot.send_message(e.chat.id, f"Please consider a donation for KASPA-Bot: `{os.environ['DONATION_ADDRESS']}`",
                      parse_mode="Markdown")
 
 
