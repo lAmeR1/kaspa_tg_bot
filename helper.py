@@ -23,6 +23,7 @@ def hashrate_to_int(str_hashrate: str):
 
 
 def extract_hashrate(str_hashrate):
+    suffix = None
     val = float(re.findall(r'\d+(?:\.\d+)?', str_hashrate)[0])
     for suf in ['KH', 'MH', 'GH', 'TH', 'PH', 'EH', 'H']:
         if suf.lower() in str_hashrate.lower():

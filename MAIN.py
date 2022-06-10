@@ -91,11 +91,13 @@ def mining_reward(e):
     network_hashrate = int(stats['hashrate'])
     own_hashrate = own_hashrate + suffix if suffix else own_hashrate
     own_hashrate = hashrate_to_int(own_hashrate)
-    hash_percent_of_network = percent_of_network(own_hashrate, network_hashrate)
-    rewards = get_mining_rewards(int(stats['daa_score']), hash_percent_of_network)
-    bot.send_message(e.chat.id,
-                     MINING_CALC(rewards),
-                     parse_mode="Markdown")
+
+    if own_hashrate:
+        hash_percent_of_network = percent_of_network(own_hashrate, network_hashrate)
+        rewards = get_mining_rewards(int(stats['daa_score']), hash_percent_of_network)
+        bot.send_message(e.chat.id,
+                         MINING_CALC(rewards),
+                         parse_mode="Markdown")
 
 
 @bot.message_handler(commands=["id"])
