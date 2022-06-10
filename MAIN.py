@@ -20,6 +20,35 @@ bot = TeleBot(os.environ["TELEBOT_TOKEN"], threaded=True)
 assert os.environ.get('DONATION_ADDRESS') is not None
 
 
+def check_debounce(seconds=300):
+    def wrapper(*args, **kwargs):
+        cmd_id = f'{args[0].chat.id}{args[0].text.split("@")[0]}'
+        if time_passed := (time.time() - DEBOUNCE_CACHE.get(cmd_id, 0)) > seconds:
+            DEBOUNCE_CACHE[cmd_id] = time.time()
+        else:
+            try:
+                bot.delete_message(args[0].chat.id, args[0].id)
+            except ApiTelegramException as e:
+                if "message can't be deleted for everyone" not in str(e):
+                    raise
+
+        return time_passed  # True, if timedelta > seconds
+
+    return wrapper
+
+def check_param(*args):
+    is_param = len(args[0].text.split(" ")) > 1
+    if not is_param:
+        try:
+            bot.delete_message(args[0].chat.id, args[0].id)
+        except ApiTelegramException as e:
+            if "message can't be deleted for everyone" not in str(e):
+                raise
+
+    return is_param
+
+
+
 @bot.callback_query_handler(func=lambda call: call.data == 'cb_update')
 def callback_query_price_update(call):
     if kas_usd := _get_kas_price():
@@ -36,13 +65,13 @@ def callback_query_price_update(call):
     bot.answer_callback_query(call.id)
 
 
-@bot.message_handler(commands=["donate"])
+@bot.message_handler(commands=["donate"], func=check_debounce())
 def donate(e):
     bot.send_message(e.chat.id, f"Please consider a donation for KASPA-Bot: `{os.environ['DONATION_ADDRESS']}`",
                      parse_mode="Markdown")
 
 
-@bot.message_handler(commands=["balance"])
+@bot.message_handler(commands=["balance"], func=check_param)
 def balance(e):
     try:
         address = e.text.split(" ")[1]
@@ -76,7 +105,7 @@ def devfund(e):
                                 f"{balance_mining + balance_donation:,} KAS\n```", parse_mode="Markdown")
 
 
-@bot.message_handler(commands=["coin_supply"])
+@bot.message_handler(commands=["coin_supply"], func=check_debounce())
 def coin_supply(e):
     circulacting_supply = KaspaInterface.get_circulating_supply()
     bot.send_message(e.chat.id,
@@ -90,22 +119,6 @@ def coin_supply(e):
                      f"```", parse_mode="Markdown")
 
 
-def check_debounce(seconds):
-    def wrapper(*args, **kwargs):
-        cmd_id = f'{args[0].chat.id}{args[0].text.split("@")[0]}'
-        if time_passed := (time.time() - DEBOUNCE_CACHE.get(cmd_id, 0)) > seconds:
-            DEBOUNCE_CACHE[cmd_id] = time.time()
-        else:
-            try:
-                bot.delete_message(args[0].chat.id, args[0].id)
-            except ApiTelegramException as e:
-                if "message can't be deleted for everyone" not in str(e):
-                    raise
-
-        return time_passed  # True, if timedelta > seconds
-
-    return wrapper
-
 
 @bot.message_handler(commands=["price"], func=check_debounce(DEBOUNCE_SECS_PRICE))
 def price(e):
@@ -116,7 +129,7 @@ def price(e):
                                                                                   callback_data="cb_update")]]))
 
 
-@bot.message_handler(commands=["mining_reward"])
+@bot.message_handler(commands=["mining_reward"], func=check_param)
 def mining_reward(e):
     params = " ".join(e.text.split(" ")[1:])
     match = re.match(r"(?P<dec>\d+) *(?P<suffix>[^\d ]+)", params)
@@ -145,7 +158,7 @@ def id(e):
     bot.send_message(e.chat.id, f"Chat-Id: {e.chat.id}")
 
 
-@bot.message_handler(commands=["mcap"])
+@bot.message_handler(commands=["mcap"], func=check_debounce())
 def mcap(e):
     price_usd = _get_kas_price()
 
@@ -161,12 +174,12 @@ def mcap(e):
                      parse_mode="Markdown")
 
 
-@bot.message_handler(commands=["id"])
+@bot.message_handler(commands=["id"], func=check_debounce())
 def id(e):
     bot.send_message(e.chat.id, f"Chat-Id: {e.chat.id}")
 
 
-@bot.message_handler(commands=["mcap"])
+@bot.message_handler(commands=["mcap"], func=check_debounce())
 def mcap(e):
     price_usd = _get_kas_price()
 
@@ -182,11 +195,24 @@ def mcap(e):
                      parse_mode="Markdown")
 
 
-@bot.message_handler(commands=["hashrate"])
+@bot.message_handler(commands=["hashrate"], func=check_debounce())
 def hashrate(e):
     stats = KaspaInterface.get_stats()
     norm_hashrate = normalize_hashrate(int(stats['hashrate']))
     bot.send_message(e.chat.id, f"Current Hashrate: *{norm_hashrate}*", parse_mode="Markdown")
+
+
+@bot.message_handler(commands=["buy"], func=check_debounce())
+def buy(e):
+    bot.send_message(e.chat.id,
+                     f"----------------------------------\n"
+                     f"    💰   *Exchanges*\n"
+                     f"----------------------------------\n"
+                     f" *Txbit*\n"
+                     f"  https://txbit.io/\n"
+                     f"----------------------------------\n"
+                     f"  *Exibitron*\n"
+                     f"  https://www.exbitron.com/""", parse_mode="Markdown")
 
 
 def _get_kas_price():
