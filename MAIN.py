@@ -24,7 +24,6 @@ assert os.environ.get('DONATION_ADDRESS') is not None
 def callback_query_price_update(call):
     if kas_usd := _get_kas_price():
         message = f'Current KAS price: <b>{kas_usd * 1.0e6:.0f} USD</b> per 1M KAS'
-        print(message)
         try:
             bot.edit_message_text(message, call.message.chat.id, call.message.id,
                                   parse_mode="HTML",
