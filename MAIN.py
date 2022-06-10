@@ -2,8 +2,8 @@
 
 import os
 import re
+import time
 from contextlib import suppress
-from random import randint
 
 import requests
 from telebot import TeleBot
@@ -11,15 +11,17 @@ from telebot.apihelper import ApiTelegramException
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 import KaspaInterface
-from constants import TOTAL_COIN_SUPPLY, DEV_MINING_ADDR, DEV_DONATION_ADDR
+from constants import TOTAL_COIN_SUPPLY, DEV_MINING_ADDR, DEV_DONATION_ADDR, DEBOUNCE_SECS_PRICE
 from helper import hashrate_to_int, percent_of_network, get_mining_rewards, MINING_CALC, normalize_hashrate
+
+DEBOUNCE_CACHE = {}
 
 bot = TeleBot(os.environ["TELEBOT_TOKEN"], threaded=True)
 assert os.environ.get('DONATION_ADDRESS') is not None
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'cb_update')
-def callback_query(call):
+def callback_query_price_update(call):
     if kas_usd := _get_kas_price():
         message = f'Current KAS price: <b>{kas_usd * 1.0e6:.0f} USD</b> per 1M KAS'
         print(message)
@@ -89,7 +91,24 @@ def coin_supply(e):
                      f"```", parse_mode="Markdown")
 
 
-@bot.message_handler(commands=["price"])
+def check_debounce(seconds):
+    def wrapper(*args, **kwargs):
+        cmd_id = f'{args[0].chat.id}{args[0].text.split("@")[0]}'
+        if time_passed := (time.time() - DEBOUNCE_CACHE.get(cmd_id, 0)) > seconds:
+            DEBOUNCE_CACHE[cmd_id] = time.time()
+        else:
+            try:
+                bot.delete_message(args[0].chat.id, args[0].id)
+            except ApiTelegramException as e:
+                if "message can't be deleted for everyone" not in str(e):
+                    raise
+
+        return time_passed  # True, if timedelta > seconds
+
+    return wrapper
+
+
+@bot.message_handler(commands=["price"], func=check_debounce(DEBOUNCE_SECS_PRICE))
 def price(e):
     if kas_usd := _get_kas_price():
         bot.send_message(e.chat.id, f'Current KAS price: *{kas_usd * 1.0e6:.0f} USD* per 1M KAS',

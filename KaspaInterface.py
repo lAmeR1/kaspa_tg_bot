@@ -20,6 +20,7 @@ def kaspa_connection():
     """
     cli = RPCClient()
     cli.connect(os.environ["KASPAD_HOST"], os.environ["KASPAD_PORT"])
+
     yield cli
     cli.close()
 
