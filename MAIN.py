@@ -3,9 +3,12 @@
 import os
 import re
 from contextlib import suppress
+from random import randint
 
 import requests
 from telebot import TeleBot
+from telebot.apihelper import ApiTelegramException
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 import KaspaInterface
 from constants import TOTAL_COIN_SUPPLY, DEV_MINING_ADDR, DEV_DONATION_ADDR
@@ -13,6 +16,23 @@ from helper import hashrate_to_int, percent_of_network, get_mining_rewards, MINI
 
 bot = TeleBot(os.environ["TELEBOT_TOKEN"], threaded=True)
 assert os.environ.get('DONATION_ADDRESS') is not None
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'cb_update')
+def callback_query(call):
+    if kas_usd := _get_kas_price():
+        message = f'Current KAS price: <b>{kas_usd * 1.0e6:.0f} USD</b> per 1M KAS'
+        print(message)
+        try:
+            bot.edit_message_text(message, call.message.chat.id, call.message.id,
+                                  parse_mode="HTML",
+                                  reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Update",
+                                                                                           callback_data="cb_update")]]))
+        except ApiTelegramException as e:
+            if "message is not modified" not in str(e):
+                raise
+
+    bot.answer_callback_query(call.id)
 
 
 @bot.message_handler(commands=["donate"])
@@ -73,7 +93,9 @@ def coin_supply(e):
 def price(e):
     if kas_usd := _get_kas_price():
         bot.send_message(e.chat.id, f'Current KAS price: *{kas_usd * 1.0e6:.0f} USD* per 1M KAS',
-                         parse_mode="Markdown")
+                         parse_mode="Markdown",
+                         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Update",
+                                                                                  callback_data="cb_update")]]))
 
 
 @bot.message_handler(commands=["mining_reward"])
