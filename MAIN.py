@@ -121,6 +121,27 @@ def mcap(e):
                      parse_mode="Markdown")
 
 
+@bot.message_handler(commands=["id"])
+def id(e):
+    bot.send_message(e.chat.id, f"Chat-Id: {e.chat.id}")
+
+
+@bot.message_handler(commands=["mcap"])
+def mcap(e):
+    price_usd = _get_kas_price()
+
+    circ_supply = KaspaInterface.get_circulating_supply()
+
+    bot.send_message(e.chat.id,
+                     f"*$KAS MARKET CAP*\n"
+                     f"{'-' * 25}\n"
+                     f"```\n"
+                     f"Current Market Capitalization : {circ_supply * price_usd:>11,.0f} USD\n"
+                     f"Fully Diluted Valuation (FDV) : {TOTAL_COIN_SUPPLY * price_usd:>11,.0f} USD"
+                     f"\n```",
+                     parse_mode="Markdown")
+
+
 @bot.message_handler(commands=["hashrate"])
 def hashrate(e):
     stats = KaspaInterface.get_stats()
